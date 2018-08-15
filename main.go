@@ -2,86 +2,69 @@ package main
 
 import (
 	"fmt"
+	"net/http"
 	"os"
+	"strconv"
+	"time"
+
+	"github.com/julienschmidt/httprouter"
+
+	"github.com/Abdujabbor/log-converter/repository"
 )
 
 const ftype = "1"
 const stype = "2"
 
+var dao = repository.DAO{
+	Server:   "localhost",
+	Database: "testdb",
+}
+var tableTmpl = "<table border=1 cellpadding=10 cellspacing=5 style='width: 100%%'><thead><th>ID</th><th>TIME</th><th>MSG</th><th>FORMAT</th></thead><tbody>%s</tbody></table>"
+var rawTmpl = "<tr><td>%v</td><td>%v</td><td>%v</td><td>%v</td></tr>"
+
+func serveLogsList(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
+	page := params.ByName("page")
+	currentPage := 1
+	if v, err := strconv.Atoi(page); err == nil {
+		currentPage = v
+	}
+	limit := 10
+	offset := (currentPage - 1) * limit
+	raws, err := dao.FindAll(limit, offset)
+	if err != nil {
+		w.Write([]byte(fmt.Sprintf("Error while fetching rows: %v", err.Error())))
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	tableBody := ""
+	for _, v := range raws {
+		t := time.Unix(v.Time, 0)
+		tableBody += fmt.Sprintf(rawTmpl, v.ID, t.Format(time.RFC1123), v.Msg, v.Format)
+	}
+	table := fmt.Sprintf(tableTmpl, tableBody)
+	w.Write([]byte(table))
+}
+
 func main() {
-	// fname := "/tmp/logs.txt"
-	// fileRangeChan := make(chan watcher.FRange)
-	// go func(r chan watcher.FRange) {
-	// 	watcher.Process(r, fname)
-	// }(fileRangeChan)
+	fmt.Println("Please wait until servers will be ready")
+	err := dao.Connect()
+	if err != nil {
+		panic(err)
+	}
+	_, files, err := parseInputArgs(os.Args)
+	if err != nil {
+		panic(err)
+	}
 
-	// for {
-	// 	select {
-	// 	case v, ok := <-fileRangeChan:
-	// 		if ok {
-	// 			file, _ := os.Open(fname)
-	// 			rbytes := make([]byte, v.End-v.Start)
-	// 			file.ReadAt(rbytes, v.Start)
-	// 			fmt.Printf("Written string: %v", string(rbytes))
-	// 		}
-	// 		break
-	// 	}
-	// }
-	// args, files, err := parseInputArgs(os.Args)
-	// if err != nil {
-	// 	panic(err)
-	// }
+	for _, v := range files {
+		go collectFileRecordsToDB(v)
+	}
 
-	// fmt.Println(args)
-	// fmt.Println(files)
+	router := httprouter.New()
 
-	// dao := repo.DAO{
-	// 	Server:   "localhost",
-	// 	Database: "testdb",
-	// }
-	// dao.Connect()
-	// records, err := dao.FindAll()
-	// if err != nil {
-	// 	fmt.Println(err)
-	// 	os.Exit(1)
-	// }
+	router.GET("/list/:page", serveLogsList)
 
-	// fmt.Println(records)
-
-	// t := time.Now()
-	// raw := repo.Record{
-	// 	ID:     bson.NewObjectId(),
-	// 	Time:   t.Unix() + rand.Int63n(10),
-	// 	Msg:    "Hello World",
-	// 	Format: "first_format",
-	// }
-	// err := dao.Insert(raw)
-	// if err != nil {
-	// 	fmt.Println(err)
-	// }
-
-	// sess, err := mgo.Dial("localhost")
-	// if err != nil {
-	// 	fmt.Println(err)
-	// 	os.Exit(1)
-	// }
-	// defer sess.Close()
-	// err = sess.Ping()
-	// if err != nil {
-	// 	fmt.Println(err)
-	// 	os.Exit(1)
-	// }
-	// fmt.Println("MongoDB server is healthy.")
-
-	// // collection := sess.DB("testdb").C("logs")
-	// // collection.Create()
-	// // var i interface{}
-	// // r := make([]*interface{}, 10)
-	// // collection.Find(i).All(&r)
-	// // fmt.Println(r)
-	// os.Exit(0)
-	// s := "Feb 1, 2018 at 3:04:05pm (UTC)"
-	// fmt.Println(time.Parse("Jan 2, 2006 at 3:04:05pm (UTC)", s))
+	http.ListenAndServe(":8080", router)
 }
 
 func parseInputArgs(args []string) ([]string, []string, error) {
@@ -99,7 +82,7 @@ func parseInputArgs(args []string) ([]string, []string, error) {
 
 	for _, v := range files {
 		if _, err := os.Stat(v); os.IsNotExist(err) {
-			return nil, nil, fmt.Errorf("%v doesn't exist, please make sure that is already exists %v and run program again", v, v)
+			os.Create(v)
 		}
 	}
 	return args, files, nil

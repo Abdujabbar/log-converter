@@ -3,7 +3,6 @@ package repository
 import (
 	"fmt"
 	"log"
-	"os"
 
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
@@ -21,7 +20,7 @@ type DAO struct {
 }
 
 //Connect method
-func (m *DAO) Connect() {
+func (m *DAO) Connect() error {
 	session, err := mgo.Dial(m.Server)
 	if err != nil {
 		log.Fatal(err)
@@ -29,17 +28,17 @@ func (m *DAO) Connect() {
 	db = session.DB(m.Database)
 	err = session.Ping()
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(0)
+		return err
 	}
 
 	fmt.Println("Mongo db connected successful!")
+	return nil
 }
 
 //FindAll method
-func (m *DAO) FindAll() ([]Record, error) {
+func (m *DAO) FindAll(limit, offset int) ([]Record, error) {
 	var records []Record
-	err := db.C(COLLECTION).Find(bson.M{}).All(&records)
+	err := db.C(COLLECTION).Find(bson.M{}).Limit(limit).Skip(offset).Sort("log_time").All(&records)
 	return records, err
 }
 
