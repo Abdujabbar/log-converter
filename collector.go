@@ -3,14 +3,14 @@ package main
 import (
 	"fmt"
 
+	"github.com/Abdujabbor/log-converter/notifier"
 	"github.com/Abdujabbor/log-converter/repository"
-	"github.com/Abdujabbor/log-converter/watcher"
 )
 
 func collectFileRecordsToDB(fname string) {
 	recordChan := make(chan *repository.Record)
 	go func(rChan chan *repository.Record) {
-		watcher.FileWriteNotifiy(rChan, fname)
+		notifier.FileWriteNotifiy(rChan, fname)
 	}(recordChan)
 	for {
 		select {
@@ -19,8 +19,6 @@ func collectFileRecordsToDB(fname string) {
 				err := dao.Insert(*v)
 				if err != nil {
 					fmt.Printf("Error while storing record: %v, with string %v", v, err.Error())
-				} else {
-					fmt.Printf("Stored string: %v\n", v)
 				}
 			}
 			break
