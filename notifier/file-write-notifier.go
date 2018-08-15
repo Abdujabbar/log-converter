@@ -23,6 +23,7 @@ func FileWriteNotifiy(recordChan chan *repository.Record, fname string) {
 		finfo, err := os.Stat(fname)
 		if err != nil {
 			fmt.Println(err)
+			break
 		}
 		if fsize == -1 {
 			fsize = finfo.Size()
@@ -31,8 +32,10 @@ func FileWriteNotifiy(recordChan chan *repository.Record, fname string) {
 				rbytes := make([]byte, finfo.Size()-fsize)
 				file.ReadAt(rbytes, fsize)
 				record := parseRaw(string(rbytes))
-				record.FileName = fname
-				recordChan <- record
+				if record != nil {
+					record.FileName = fname
+					recordChan <- record
+				}
 				fsize = finfo.Size()
 			}
 		}
@@ -45,13 +48,13 @@ func parseRaw(raw string) *repository.Record {
 	s := strings.Split(strings.Trim(raw, "\n"), " | ")
 	t, msg := strings.TrimSpace(s[0]), strings.TrimSpace(s[1])
 	tm, err := time.Parse(firstTimeFormat, t)
-	r.Format = "1"
+	r.Format = "first_format"
 	if err != nil {
 		tm, err = time.Parse(secondTimeFormat, t)
 		if err != nil {
 			return nil
 		}
-		r.Format = "2"
+		r.Format = "second_format"
 	}
 	r.Time = tm.Unix()
 	r.Msg = msg
