@@ -3,16 +3,18 @@ package main
 import (
 	"fmt"
 	"os"
+
+	"github.com/Abdujabbor/log-converter/repository"
 )
 
-func process(args []string) {
+func process(dataAccessObject *repository.DAO, args []string) {
 	_, files, err := parseInputArgs(args)
 	if err != nil {
 		panic(err)
 	}
 
 	for _, v := range files {
-		go collectFileRecordsToDB(v)
+		go collectFileRecordsToDB(dataAccessObject, v)
 	}
 }
 
@@ -30,9 +32,13 @@ func parseInputArgs(args []string) ([]string, []string, error) {
 	files := args[1 : len(args)-1]
 
 	for _, v := range files {
-		if _, err := os.Stat(v); os.IsNotExist(err) {
-			os.Create(v)
-		}
+		checkAndCreateFile(v)
 	}
 	return args, files, nil
+}
+
+func checkAndCreateFile(fname string) {
+	if _, err := os.Stat(fname); os.IsNotExist(err) {
+		os.Create(fname)
+	}
 }

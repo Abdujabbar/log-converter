@@ -15,23 +15,28 @@ import (
 const ftype = "1"
 const stype = "2"
 
-var dao = repository.DAO{
-	Server:   "localhost",
-	Database: "testdb",
-}
-var tableTmpl = "<table border=1 cellpadding=10 cellspacing=5 style='width: 100%%'><thead><th>ID</th><th>TIME</th><th>MSG</th><th>FORMAT</th></thead><tbody>%s</tbody></table>"
+var tableTmpl = "<table border=1 cellpadding=10 cellspacing=5 style='width: 100%%'><thead><th>ID</th><th>TIME</th><th>MSG</th><th>FORMAT</th></thead><tbody>%s</tbody><tfoot>%s</tfoot></table>"
 var rawTmpl = "<tr><td>%v</td><td>%v</td><td>%v</td><td>%v</td></tr>"
+var tfootTpml = "<tr><td colspan=3>Total Rows</td><td>%v</td></tr>"
+var dao repository.DAO
 
 func main() {
 	fmt.Println("Please wait until servers will be ready")
+	dao = repository.DAO{
+		Server:   "localhost",
+		Database: "plogs",
+	}
+
 	err := dao.Connect()
 	if err != nil {
 		panic(err)
 	}
 
-	go process(os.Args)
+	go process(&dao, os.Args)
 
 	router := httprouter.New()
+
+	router.GET("/logs", logsHandler)
 
 	router.GET("/logs/:page", logsHandler)
 
@@ -57,6 +62,8 @@ func logsHandler(w http.ResponseWriter, r *http.Request, params httprouter.Param
 		t := time.Unix(v.Time, 0)
 		tableBody += fmt.Sprintf(rawTmpl, v.ID, t.Format(time.RFC1123), v.Msg, v.Format)
 	}
-	table := fmt.Sprintf(tableTmpl, tableBody)
+	total, _ := dao.Count()
+	tfoot := fmt.Sprintf(tfootTpml, total)
+	table := fmt.Sprintf(tableTmpl, tableBody, tfoot)
 	w.Write([]byte(table))
 }

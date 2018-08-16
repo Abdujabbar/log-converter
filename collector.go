@@ -7,7 +7,7 @@ import (
 	"github.com/Abdujabbor/log-converter/repository"
 )
 
-func collectFileRecordsToDB(fname string) {
+func collectFileRecordsToDB(dataAccessObject *repository.DAO, fname string) {
 	recordChan := make(chan *repository.Record)
 	go func(rChan chan *repository.Record) {
 		notifier.FileWriteNotifiy(rChan, fname)
@@ -16,7 +16,7 @@ func collectFileRecordsToDB(fname string) {
 		select {
 		case v, ok := <-recordChan:
 			if ok {
-				err := dao.Insert(*v)
+				err := dataAccessObject.Insert(*v)
 				if err != nil {
 					fmt.Printf("Error while storing record: %v, with string %v", v, err.Error())
 				}

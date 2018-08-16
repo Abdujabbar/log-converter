@@ -42,6 +42,11 @@ func (m *DAO) FindAll(limit, offset int) ([]Record, error) {
 	return records, err
 }
 
+//Count method
+func (m *DAO) Count() (int, error) {
+	return db.C(COLLECTION).Find(bson.M{}).Count()
+}
+
 //FindByID method
 func (m *DAO) FindByID(id string) (Record, error) {
 	var record Record
@@ -52,6 +57,13 @@ func (m *DAO) FindByID(id string) (Record, error) {
 //Insert method
 func (m *DAO) Insert(raw Record) error {
 	err := db.C(COLLECTION).Insert(&raw)
+	return err
+}
+
+//Truncate collection method
+func (m *DAO) Truncate() error {
+	var i interface{}
+	_, err := db.C(COLLECTION).RemoveAll(&i)
 	return err
 }
 
