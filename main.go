@@ -25,6 +25,7 @@ func main() {
 	}
 
 	err := dao.Connect()
+	dao.Truncate()
 	if err != nil {
 		panic(err)
 	}
