@@ -28,7 +28,7 @@ func TestProcess(t *testing.T) {
 		"1",
 	}
 	go process(&dataAccessObject, args)
-	expected := 50
+	expected := 30
 	for i := 0; i < expected; i++ {
 		writeRandomLog(file)
 		time.Sleep(time.Millisecond * 5)

@@ -7,6 +7,9 @@ import (
 	"github.com/Abdujabbor/log-converter/repository"
 )
 
+const firstFormat = "1"
+const secondFormat = "2"
+
 func process(dataAccessObject *repository.DAO, args []string) {
 	_, files, err := parseInputArgs(args)
 	if err != nil {
@@ -23,10 +26,10 @@ func parseInputArgs(args []string) ([]string, []string, error) {
 		return nil, nil, fmt.Errorf("Required parameters files and format doesn't passed")
 	}
 	availableFormats := map[string]bool{}
-	availableFormats[ftype] = true
-	availableFormats[stype] = true
+	availableFormats[firstFormat] = true
+	availableFormats[secondFormat] = true
 	if _, ok := availableFormats[args[len(args)-1]]; !ok {
-		return nil, nil, fmt.Errorf("format parameter can receive only %v or %v", ftype, stype)
+		return nil, nil, fmt.Errorf("format parameter can receive only %v or %v", firstFormat, secondFormat)
 	}
 
 	files := args[1 : len(args)-1]

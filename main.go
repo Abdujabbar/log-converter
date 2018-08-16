@@ -12,9 +12,6 @@ import (
 	"github.com/Abdujabbor/log-converter/repository"
 )
 
-const ftype = "1"
-const stype = "2"
-
 var tableTmpl = "<table border=1 cellpadding=10 cellspacing=5 style='width: 100%%'><thead><th>ID</th><th>TIME</th><th>MSG</th><th>FORMAT</th></thead><tbody>%s</tbody><tfoot>%s</tfoot></table>"
 var rawTmpl = "<tr><td>%v</td><td>%v</td><td>%v</td><td>%v</td></tr>"
 var tfootTpml = "<tr><td colspan=3>Total Rows</td><td>%v</td></tr>"
