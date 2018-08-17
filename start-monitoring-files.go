@@ -10,8 +10,8 @@ import (
 const firstFormat = "1"
 const secondFormat = "2"
 
-func process(dataAccessObject *repository.DAO, args []string) {
-	_, files, err := parseInputArgs(args)
+func startMonitoringFiles(dataAccessObject *repository.DAO, args []string) {
+	_, files, err := parseAndValidateArgs(args)
 	if err != nil {
 		panic(err)
 	}
@@ -21,7 +21,7 @@ func process(dataAccessObject *repository.DAO, args []string) {
 	}
 }
 
-func parseInputArgs(args []string) ([]string, []string, error) {
+func parseAndValidateArgs(args []string) ([]string, []string, error) {
 	if len(args) < 3 {
 		return nil, nil, fmt.Errorf("Required parameters files and format doesn't passed")
 	}

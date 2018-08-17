@@ -30,7 +30,7 @@ func main() {
 		panic(err)
 	}
 
-	go process(&dao, os.Args)
+	go startMonitoringFiles(&dao, os.Args)
 
 	router := httprouter.New()
 

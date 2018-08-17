@@ -27,7 +27,9 @@ func TestProcess(t *testing.T) {
 		file,
 		"1",
 	}
-	go process(&dataAccessObject, args)
+
+	go startMonitoringFiles(&dataAccessObject, args)
+
 	expected := 40
 	for i := 0; i < expected; i++ {
 		writeRandomLog(file)
