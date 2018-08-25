@@ -21,7 +21,6 @@ type Provider struct {
 //Connect method
 func (m *Provider) Connect() error {
 	session, err := mgo.Dial(m.Server)
-	defer session.Close()
 
 	if err != nil {
 		return err
@@ -41,7 +40,12 @@ func (m *Provider) Connect() error {
 //FindAll method
 func (m *Provider) FindAll(limit, offset int) ([]Record, error) {
 	var records []Record
-	err := db.C(COLLECTION).Find(bson.M{}).Limit(limit).Skip(offset).Sort("log_time").All(&records)
+	var err error
+	if limit == -1 {
+		err = db.C(COLLECTION).Find(bson.M{}).Sort("log_time").All(&records)
+	} else {
+		err = db.C(COLLECTION).Find(bson.M{}).Limit(limit).Skip(offset).Sort("log_time").All(&records)
+	}
 	return records, err
 }
 
@@ -58,8 +62,8 @@ func (m *Provider) FindByID(id string) (Record, error) {
 }
 
 //Insert method
-func (m *Provider) Insert(raw Record) error {
-	err := db.C(COLLECTION).Insert(&raw)
+func (m *Provider) Insert(raw *Record) error {
+	err := db.C(COLLECTION).Insert(raw)
 	return err
 }
 
