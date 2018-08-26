@@ -1,13 +1,14 @@
 package filewatcher
 
 import (
-	"bufio"
+	"fmt"
 	"log"
 	"os"
 	"strings"
 	"time"
 
 	"github.com/Abdujabbor/log-converter/repository"
+	"github.com/bxcodec/faker"
 	"github.com/fsnotify/fsnotify"
 )
 
@@ -23,36 +24,27 @@ type FileSizes map[string]int64
 var fSizes = make(FileSizes)
 
 //Start starting the process
-func Start(provider *repository.Provider, files []string) {
-	done := make(chan bool)
+func Start(recordChan chan *repository.Record, files []string) {
+
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		log.Println("error:", err)
 	}
 	defer watcher.Close()
 
+	done := make(chan bool)
 	go func() {
 		for {
 			select {
 			case event := <-watcher.Events:
 				if event.Op&fsnotify.Write == fsnotify.Write {
-					line, err := readLastLine(event.Name)
+					line, err := getLastLine(event.Name)
 					if err != nil {
 						log.Println("error: ", err)
 						continue
 					}
-					record := buildRecordFromLine(line)
-					err = provider.Insert(record)
-					if err != nil {
-						log.Println("error: ", err)
-					} else {
-						records, err := provider.FindAll(-1, 0)
-						if err != nil {
-							log.Println("error: ", err)
-						} else {
-							log.Println("Stored records count:", len(records))
-						}
-					}
+					record := buildRecordFromString(line)
+					recordChan <- record
 				}
 			case err := <-watcher.Errors:
 				log.Println("error:", err)
@@ -78,7 +70,7 @@ func Start(provider *repository.Provider, files []string) {
 	<-done
 }
 
-func buildRecordFromLine(line string) *repository.Record {
+func buildRecordFromString(line string) *repository.Record {
 	r := repository.NewRecord()
 	s := strings.Split(strings.Trim(line, "\n"), " | ")
 	if len(s) < 2 {
@@ -99,26 +91,31 @@ func buildRecordFromLine(line string) *repository.Record {
 	return r
 }
 
-func readLastLine(fname string) (string, error) {
-	info, err := os.Stat(fname)
+func getLastLine(file string) (string, error) {
+	info, err := os.Stat(file)
 	if err != nil {
 		return "", err
 	}
+
 	var oldSize int64
-	if v, ok := fSizes[fname]; ok {
+	if v, ok := fSizes[file]; ok {
 		oldSize = v
 	}
-	f, err := os.Open(fname)
 
+	f, err := os.Open(file)
+	defer f.Close()
 	if err != nil {
 		return "", err
 	}
+	fSizes[file] = info.Size()
+	rbytes := make([]byte, info.Size()-oldSize)
+	f.ReadAt(rbytes, oldSize)
+	return string(rbytes), nil
+}
 
-	fSizes[fname] = info.Size()
-
-	f.Seek(oldSize, int(fSizes[fname]-oldSize))
-
-	scanner := bufio.NewScanner(f)
-	scanner.Scan()
-	return scanner.Text(), nil
+func generateRandomLine() string {
+	var randRecord string
+	faker.FakeData(&randRecord)
+	t := time.Now()
+	return fmt.Sprintf("%v | %v\n", t.Format("Jan 2, 2006 at 3:04:05pm (UTC)"), randRecord)
 }

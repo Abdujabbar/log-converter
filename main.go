@@ -3,19 +3,16 @@ package main
 import (
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 
 	"github.com/Abdujabbor/log-converter/filewatcher"
+	"github.com/Abdujabbor/log-converter/handlers"
 	"github.com/Abdujabbor/log-converter/repository"
-	// "github.com/Abdujabbor/log-converter/watcher"
 )
 
-// var tableTmpl = "<table border=1 cellpadding=10 cellspacing=5 style='width: 100%%'><thead><th>ID</th><th>TIME</th><th>MSG</th><th>FORMAT</th></thead><tbody>%s</tbody><tfoot>%s</tfoot></table>"
-// var rawTmpl = "<tr><td>%v</td><td>%v</td><td>%v</td><td>%v</td></tr>"
-// var tfootTpml = "<tr><td colspan=3>Total Rows</td><td>%v</td></tr>"
-//FileSize stores current size
-
 func main() {
+
 	files, err := parseArgs(os.Args)
 
 	if err != nil {
@@ -39,11 +36,26 @@ func main() {
 		panic(err)
 	}
 
-	if err != nil {
-		log.Println("error", err)
-	}
+	router := handlers.InitRouter(provider)
 
-	filewatcher.Start(&provider, files)
+	go http.ListenAndServe(":8080", router)
+
+	recordChan := make(chan *repository.Record)
+
+	go filewatcher.Start(recordChan, files)
+
+	for {
+		select {
+		case record, ok := <-recordChan:
+			if ok {
+				err = provider.Insert(record)
+				if err != nil {
+					log.Println("error: ", err)
+				}
+			}
+			break
+		}
+	}
 }
 
 func parseArgs(args []string) ([]string, error) {
