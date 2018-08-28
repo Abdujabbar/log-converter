@@ -92,7 +92,13 @@ func buildRecordFromString(line string) *repository.Record {
 }
 
 func getLastLine(file string) (string, error) {
-	info, err := os.Stat(file)
+	f, err := os.Open(file)
+	defer f.Close()
+	if err != nil {
+		return "", err
+	}
+
+	info, err := f.Stat()
 	if err != nil {
 		return "", err
 	}
@@ -102,11 +108,6 @@ func getLastLine(file string) (string, error) {
 		oldSize = v
 	}
 
-	f, err := os.Open(file)
-	defer f.Close()
-	if err != nil {
-		return "", err
-	}
 	fSizes[file] = info.Size()
 	rbytes := make([]byte, info.Size()-oldSize)
 	f.ReadAt(rbytes, oldSize)
